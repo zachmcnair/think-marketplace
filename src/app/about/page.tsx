@@ -301,11 +301,11 @@ export default function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="text-center">
-          <h2 className="font-body text-2xl font-semibold text-foreground mb-4">
+        <section className="text-center pt-8">
+          <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
             Ready to share your project?
           </h2>
-          <p className="text-muted-foreground mb-6">
+          <p className="text-lg text-muted-foreground mb-8">
             Submit your app, tool, or agent to the Think Marketplace.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">

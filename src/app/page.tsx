@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Wrench, AppWindow, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Wrench, AppWindow } from "lucide-react";
 
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
@@ -65,15 +65,9 @@ export default function HomePage() {
         <section className="border-b border-border">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <Sparkles
-                  className="h-5 w-5 text-primary"
-                  aria-hidden="true"
-                />
-                <h2 className="font-body text-2xl font-semibold text-foreground">
-                  Featured
-                </h2>
-              </div>
+              <h2 className="font-body text-2xl font-semibold text-foreground">
+                Featured
+              </h2>
               <Link
                 href="/browse?visibility=featured"
                 className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
@@ -184,7 +178,7 @@ export default function HomePage() {
       <section className="border-b border-border bg-muted/30">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="max-w-3xl mx-auto text-center">
-            <h2 className="font-heading text-3xl tracking-tight text-foreground sm:text-4xl mb-6">
+            <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
               What is User-Owned AI?
             </h2>
             <p className="text-lg text-muted-foreground mb-4">
@@ -276,7 +270,7 @@ export default function HomePage() {
       <section className="bg-gradient-to-br from-primary/5 via-transparent to-primary/10">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="text-center">
-            <h2 className="font-heading text-3xl tracking-tight text-foreground sm:text-4xl mb-6">
+            <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
               Building on Think?
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
