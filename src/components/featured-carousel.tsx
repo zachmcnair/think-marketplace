@@ -200,19 +200,23 @@ export function FeaturedCarousel({ listings }: FeaturedCarouselProps) {
       </Button>
 
       {/* Dots indicator */}
-      <div className="flex justify-center gap-2 mt-6">
+      <div className="flex justify-center gap-1 mt-6">
         {listings.map((_, index) => (
           <button
             key={index}
             onClick={() => scrollTo(index)}
-            className={cn(
-              "h-2 rounded-full transition-all duration-300",
-              selectedIndex === index
-                ? "bg-primary w-8"
-                : "bg-muted-foreground/20 w-2 hover:bg-muted-foreground/40"
-            )}
+            className="relative p-2 group"
             aria-label={`Go to slide ${index + 1}`}
-          />
+          >
+            <span
+              className={cn(
+                "block h-2 rounded-full transition-all duration-300",
+                selectedIndex === index
+                  ? "bg-primary w-8"
+                  : "bg-muted-foreground/20 w-2 group-hover:bg-muted-foreground/40"
+              )}
+            />
+          </button>
         ))}
       </div>
     </div>

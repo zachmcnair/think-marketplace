@@ -111,7 +111,7 @@ export function Footer() {
           {/* Links columns */}
           <div>
             <h3 className="text-sm font-semibold text-foreground">Marketplace</h3>
-            <ul role="list" className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-3">
               {footerLinks.marketplace.map((link) => (
                 <li key={link.name}>
                   <Link
@@ -127,7 +127,7 @@ export function Footer() {
 
           <div>
             <h3 className="text-sm font-semibold text-foreground">For Builders</h3>
-            <ul role="list" className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-3">
               {footerLinks.builders.map((link) => (
                 <li key={link.name}>
                   <Link
@@ -143,7 +143,7 @@ export function Footer() {
 
           <div>
             <h3 className="text-sm font-semibold text-foreground">Think Protocol</h3>
-            <ul role="list" className="mt-4 space-y-3">
+            <ul className="mt-4 space-y-3">
               {footerLinks.think.map((link) => (
                 <li key={link.name}>
                   <a
