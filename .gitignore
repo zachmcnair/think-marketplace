@@ -43,3 +43,10 @@ next-env.d.ts
 .env.local
 .env
 
+.ai
+.ai/
+.ai/*
+
+.claude
+.claude/
+.claude/*
