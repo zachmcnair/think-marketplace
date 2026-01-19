@@ -1,6 +1,7 @@
 import { Metadata } from "next"
+import { getBaseUrl } from "@/lib/utils"
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+const BASE_URL = getBaseUrl()
 
 export const metadata: Metadata = {
   title: "Submit Your Project",

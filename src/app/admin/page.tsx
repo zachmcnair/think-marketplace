@@ -44,6 +44,7 @@ import {
   Search,
   ChevronRight,
   Wallet,
+  Trash2,
 } from 'lucide-react'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { BackgroundGrid } from '@/components/ui/background-grid'
@@ -112,6 +113,10 @@ export default function AdminPage() {
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
   const [listingToReject, setListingToReject] = useState<string | null>(null)
+
+  // Delete dialog state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [listingToDelete, setListingToDelete] = useState<Listing | null>(null)
 
   // Check auth status on mount
   useEffect(() => {
@@ -252,6 +257,34 @@ export default function AdminPage() {
       setActionLoading(null)
       setListingToReject(null)
       setRejectReason('')
+    }
+  }
+
+  function openDeleteDialog(listing: Listing) {
+    setListingToDelete(listing)
+    setDeleteDialogOpen(true)
+  }
+
+  async function handleDelete() {
+    if (!listingToDelete) return
+
+    setActionLoading(listingToDelete.id)
+    setDeleteDialogOpen(false)
+
+    try {
+      const res = await fetch(`/api/admin/listings/${listingToDelete.id}/delete`, {
+        method: 'POST',
+      })
+
+      if (res.ok) {
+        await fetchData()
+        setSelectedListing(null)
+      }
+    } catch (error) {
+      console.error('Failed to delete listing:', error)
+    } finally {
+      setActionLoading(null)
+      setListingToDelete(null)
     }
   }
 
@@ -612,18 +645,33 @@ export default function AdminPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="flex gap-3">
-                   {selectedListing.review_state === 'approved' && (
+                <div className="space-y-3">
+                  <div className="flex gap-3">
+                    {selectedListing.review_state === 'approved' && (
                       <Link href={`/listing/${selectedListing.slug}`} target="_blank" className="flex-1">
                         <Button className="w-full h-12 rounded-xl" variant="outline">
                           <ExternalLink className="h-4 w-4 mr-2" />
                           View Live Project
                         </Button>
                       </Link>
-                   )}
-                   <Button variant="ghost" className="h-12 px-6 rounded-xl" onClick={() => setSelectedListing(null)}>
-                     Close
-                   </Button>
+                    )}
+                    <Button variant="ghost" className="h-12 px-6 rounded-xl" onClick={() => setSelectedListing(null)}>
+                      Close
+                    </Button>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="w-full h-12 rounded-xl text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                    onClick={() => openDeleteDialog(selectedListing)}
+                    disabled={actionLoading === selectedListing.id}
+                  >
+                    {actionLoading === selectedListing.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Trash2 className="h-4 w-4 mr-2" />
+                    )}
+                    Delete Listing
+                  </Button>
                 </div>
               )}
             </div>
@@ -959,6 +1007,37 @@ export default function AdminPage() {
               </Button>
               <Button variant="destructive" className="flex-1 h-14 rounded-xl shadow-lg shadow-red-500/20" onClick={handleReject}>
                 Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent className="rounded-[2rem] border-border/50 shadow-2xl overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 font-heading text-2xl font-normal text-red-500">
+                <Trash2 className="h-7 w-7" />
+                Delete Listing
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground leading-relaxed">
+                This action cannot be undone. The listing will be permanently removed from the database.
+              </DialogDescription>
+            </DialogHeader>
+            {listingToDelete && (
+              <div className="p-4 rounded-xl bg-muted/30 border border-border/50">
+                <p className="font-medium text-foreground">{listingToDelete.name}</p>
+                <p className="text-sm text-muted-foreground mt-1">{listingToDelete.short_description}</p>
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <Button variant="ghost" className="flex-1 h-14 rounded-xl" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" className="flex-1 h-14 rounded-xl shadow-lg shadow-red-500/20" onClick={handleDelete}>
+                Permanently Delete
               </Button>
             </div>
           </div>

@@ -8,10 +8,11 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ListingCard } from "@/components/listing-card";
 import { fetchBuilder } from "@/lib/api";
 import type { Builder, Listing } from "@/types";
+import { getBaseUrl } from "@/lib/utils";
 
 export const dynamic = 'force-dynamic'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+const BASE_URL = getBaseUrl()
 
 export async function generateMetadata({
   params,

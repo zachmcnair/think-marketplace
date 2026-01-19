@@ -1,13 +1,33 @@
-copy /mise/installs
-709ms
+npm run build
+24s
+npm warn config production Use `--omit=dev` instead.
+> think-marketplace@0.1.0 build
+> next build
+▲ Next.js 16.1.3 (Turbopack)
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.1s
+  Running TypeScript ...
+  Collecting page data using 47 workers ...
+Error: Failed to collect configuration for /_not-found
 
-pnpm install --frozen-lockfile --prefer-offline
-420ms
- ERR_PNPM_OUTDATED_LOCKFILE  Cannot install with "frozen-lockfile" because pnpm-lock.yaml is not up to date with <ROOT>/package.json
-Note that in CI environments this setting is true by default. If you still need to run install in such cases, use "pnpm install --no-frozen-lockfile"
-    Failure reason:
-    specifiers in the lockfile ({"@radix-ui/react-avatar":"^1.1.11","@radix-ui/react-dialog":"^1.1.15","@radix-ui/react-dropdown-menu":"^2.1.16","@radix-ui/react-label":"^2.1.8","@radix-ui/react-select":"^2.2.6","@radix-ui/react-separator":"^1.1.8","@radix-ui/react-slot":"^1.2.4","@radix-ui/react-tabs":"^1.1.13","@supabase/ssr":"^0.8.0","@supabase/supabase-js":"^2.90.1","class-variance-authority":"^0.7.1","clsx":"^2.1.1","cmdk":"^1.1.1","embla-carousel-autoplay":"^8.6.0","embla-carousel-react":"^8.6.0","lucide-react":"^0.562.0","next":"16.1.3","next-themes":"^0.4.6","react":"19.2.3","react-dom":"19.2.3","tailwind-merge":"^3.4.0","@tailwindcss/postcss":"^4","@types/node":"^20","@types/react":"^19","@types/react-dom":"^19","eslint":"^9","eslint-config-next":"16.1.3","tailwindcss":"^4","tw-animate-css":"^1.4.0","typescript":"^5"}) don't match specs in package.json ({"@tailwindcss/postcss":"^4","@types/node":"^20","@types/react":"^19","@types/react-dom":"^19","eslint":"^9","eslint-config-next":"16.1.3","tailwindcss":"^4","tsx":"^4.21.0","tw-animate-css":"^1.4.0","typescript":"^5","@aws-sdk/client-s3":"^3.971.0","@prisma/client":"^5.22.0","@privy-io/node":"^0.7.0","@privy-io/react-auth":"^3.11.0","@radix-ui/react-avatar":"^1.1.11","@radix-ui/react-dialog":"^1.1.15","@radix-ui/react-dropdown-menu":"^2.1.16","@radix-ui/react-label":"^2.1.8","@radix-ui/react-select":"^2.2.6","@radix-ui/react-separator":"^1.1.8","@radix-ui/react-slot":"^1.2.4","@radix-ui/react-tabs":"^1.1.13","@supabase/ssr":"^0.8.0","@supabase/supabase-js":"^2.90.1","class-variance-authority":"^0.7.1","clsx":"^2.1.1","cmdk":"^1.1.1","dotenv":"^17.2.3","embla-carousel-autoplay":"^8.6.0","embla-carousel-react":"^8.6.0","lucide-react":"^0.562.0","next":"16.1.3","next-themes":"^0.4.6","prisma":"^5.22.0","react":"19.2.3","react-dom":"19.2.3","tailwind-merge":"^3.4.0","viem":"^2.44.4"})
+    at ignore-listed frames {
+  [cause]: TypeError: Invalid URL
+      at module evaluation (.next/server/chunks/ssr/[root-of-the-server]__31fe78f4._.js:1:4485)
+      at instantiateModule (.next/server/chunks/ssr/[turbopack]_runtime.js:740:9)
+      at getOrInstantiateModuleFromParent (.next/server/chunks/ssr/[turbopack]_runtime.js:763:12)
+      at Context.esmImport [as i] (.next/server/chunks/ssr/[turbopack]_runtime.js:228:20)
+      at module evaluation (.next/server/chunks/ssr/[root-of-the-server]__03d1af6c._.js:1:244)
+      at instantiateModule (.next/server/chunks/ssr/[turbopack]_runtime.js:740:9)
+      at getOrInstantiateModuleFromParent (.next/server/chunks/ssr/[turbopack]_runtime.js:763:12)
+      at Context.commonJsRequire [as r] (.next/server/chunks/ssr/[turbopack]_runtime.js:249:12) {
+    code: 'ERR_INVALID_URL',
+    input: 'think-marketplace.up.railway.app'
+  }
+}
+> Build error occurred
+Error: Failed to collect page data for /_not-found
 
-copy /usr/local/bin/mise, /etc/mise/config.toml, /root/.local/state/mise
-182ms
-ERROR: failed to build: failed to solve: process "pnpm install --frozen-lockfile --prefer-offline" did not complete successfully: exit code: 1
+    at ignore-listed frames {
+  type: 'Error'
+}
+ERROR: failed to build: failed to solve: process "npm run build" did not complete successfully: exit code: 1

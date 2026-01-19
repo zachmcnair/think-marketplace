@@ -17,7 +17,9 @@ const goudy = Goudy_Bookletter_1911({
   display: "swap",
 });
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+import { getBaseUrl } from "@/lib/utils";
+
+const BASE_URL = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(BASE_URL),

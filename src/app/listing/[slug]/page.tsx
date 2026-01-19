@@ -27,7 +27,7 @@ import { fetchListing, fetchBuilder } from "@/lib/api";
 import { ListingCard } from "@/components/listing-card";
 import { BackgroundGrid } from "@/components/ui/background-grid";
 import { ShareButton } from "@/components/share-button";
-import { cn } from "@/lib/utils";
+import { cn, getBaseUrl } from "@/lib/utils";
 import type { Listing } from "@/types";
 
 export const dynamic = 'force-dynamic'
@@ -52,7 +52,7 @@ const statusColors = {
 
 const DEFAULT_ICON = "/thinkos-grey.svg";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+const BASE_URL = getBaseUrl()
 
 export async function generateMetadata({
   params,

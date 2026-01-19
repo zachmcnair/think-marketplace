@@ -16,7 +16,9 @@ import type { Listing } from "@/types";
 
 export const dynamic = 'force-dynamic'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+import { getBaseUrl } from "@/lib/utils";
+
+const BASE_URL = getBaseUrl();
 
 // JSON-LD structured data for the home page
 const websiteJsonLd = {

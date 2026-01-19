@@ -5,7 +5,9 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+import { getBaseUrl } from "@/lib/utils";
+
+const BASE_URL = getBaseUrl();
 
 export const metadata = {
   title: "About Think Marketplace",
