@@ -11,6 +11,8 @@ import type { Builder, Listing } from "@/types";
 
 export const dynamic = 'force-dynamic'
 
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+
 export async function generateMetadata({
   params,
 }: {
@@ -20,13 +22,39 @@ export async function generateMetadata({
 
   try {
     const builder = await fetchBuilder(slug);
+    const description = builder.bio || `View AI agents, tools, and apps from ${builder.name} on Think Marketplace`;
+
     return {
-      title: builder.name,
-      description: builder.bio || `View listings from ${builder.name} on Think Marketplace`,
+      title: `${builder.name} - Builder Profile`,
+      description,
+      openGraph: {
+        title: `${builder.name} | Think Marketplace Builder`,
+        description,
+        url: `${BASE_URL}/builder/${slug}`,
+        type: 'profile',
+        images: builder.avatar_url ? [
+          {
+            url: builder.avatar_url,
+            width: 400,
+            height: 400,
+            alt: builder.name,
+          }
+        ] : undefined,
+      },
+      twitter: {
+        card: 'summary',
+        title: `${builder.name} | Think Marketplace`,
+        description,
+        images: builder.avatar_url ? [builder.avatar_url] : undefined,
+      },
+      alternates: {
+        canonical: `${BASE_URL}/builder/${slug}`,
+      },
     };
   } catch {
     return {
-      title: "Not Found",
+      title: "Builder Not Found",
+      description: "The requested builder profile could not be found.",
     };
   }
 }
@@ -48,8 +76,29 @@ export default async function BuilderPage({
 
   const listings = (builder.listings || []) as unknown as Listing[];
 
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: builder.name,
+    description: builder.bio,
+    url: `${BASE_URL}/builder/${builder.slug}`,
+    image: builder.avatar_url,
+    sameAs: [
+      builder.website,
+      builder.twitter ? `https://twitter.com/${builder.twitter}` : null,
+      builder.github ? `https://github.com/${builder.github}` : null,
+    ].filter(Boolean),
+  };
+
   return (
     <Layout>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Back link */}
         <div className="mb-6">

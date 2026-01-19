@@ -1,224 +1,119 @@
 import Link from "next/link";
-import { ArrowRight, Bot, Wrench, AppWindow } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Suspense } from "react";
 
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { ListingCard } from "@/components/listing-card";
-import { FeaturedCarousel } from "@/components/featured-carousel";
+import { ListingCardSkeleton } from "@/components/listing-card-skeleton";
+import { FeaturedGrid } from "@/components/home/featured-grid";
+import { FeaturedGridSkeleton } from "@/components/featured-grid-skeleton";
+import { HeroSection } from "@/components/home/hero-section";
+import { CategoryGrid } from "@/components/home/category-grid";
+import { FadeIn } from "@/components/ui/fade-in";
 import { fetchFeaturedListings, fetchListings, fetchCategories } from "@/lib/api";
 import type { Listing } from "@/types";
 
-export const dynamic = 'force-dynamic' // Fetch fresh data on each request
+export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
-  // Fetch data from API
-  const [featuredData, allData, agentData, toolData, appData, categoriesData] = await Promise.all([
-    fetchFeaturedListings(),
-    fetchListings({ limit: 6 }),
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://marketplace.thinkagents.ai'
+
+// JSON-LD structured data for the home page
+const websiteJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Think Marketplace',
+  description: 'Discover apps, tools, and agents built on the Think protocol. A curated showcase of AI you own.',
+  url: BASE_URL,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: {
+      '@type': 'EntryPoint',
+      urlTemplate: `${BASE_URL}/browse?search={search_term_string}`,
+    },
+    'query-input': 'required name=search_term_string',
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'Think Protocol',
+    url: 'https://thinkagents.ai',
+    logo: {
+      '@type': 'ImageObject',
+      url: `${BASE_URL}/think-brainfist-light-mode.svg`,
+    },
+    sameAs: [
+      'https://x.com/thinkagents',
+      'https://github.com/think-labs',
+    ],
+  },
+};
+
+async function FeaturedSection() {
+  const data = await fetchFeaturedListings();
+  const featuredListings = data.listings as unknown as Listing[];
+
+  if (featuredListings.length === 0) return null;
+
+  return (
+    <FadeIn>
+      <section className="border-b border-border relative overflow-hidden">
+        <div className="absolute inset-0 bg-muted/20 skew-y-1 transform origin-top-left -z-10 h-full" />
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="font-heading text-3xl font-normal text-foreground">
+              Featured Projects
+            </h2>
+            <Link
+              href="/browse?visibility=featured"
+              className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+            >
+              View all featured
+            </Link>
+          </div>
+          <FeaturedGrid listings={featuredListings} />
+        </div>
+      </section>
+    </FadeIn>
+  );
+}
+
+async function CategorySection() {
+  const [agentData, toolData, appData] = await Promise.all([
     fetchListings({ type: 'agent' }),
     fetchListings({ type: 'tool' }),
     fetchListings({ type: 'app' }),
-    fetchCategories(),
   ]);
 
-  const featuredListings = featuredData.listings as unknown as Listing[];
-  const allListings = allData.listings as unknown as Listing[];
-  const agents = agentData.listings;
-  const tools = toolData.listings;
-  const apps = appData.listings;
-  const categories = categoriesData.categories;
+  const categoryCounts = {
+    agents: agentData.listings.length,
+    tools: toolData.listings.length,
+    apps: appData.listings.length
+  };
 
   return (
-    <Layout>
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border">
-        {/* Background decoration */}
-        <div
-          className="absolute inset-0 -z-10 overflow-hidden"
-          aria-hidden="true"
-        >
-          <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/5 blur-3xl" />
-          <div className="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-primary/10 blur-3xl" />
-        </div>
-
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="text-center">
-            <h1 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl lg:text-6xl text-balance font-normal">
-              Discover What&apos;s Being Built on{" "}
-              <span className="text-primary">Think</span>
-            </h1>
-            <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-              Agents, tools, and apps from builders creating AI you actually
-              own. Your AI, your data, your rules.
-            </p>
-            <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" asChild>
-                <Link href="/browse">
-                  Browse the Directory
-                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Button>
-              <Button variant="outline" size="lg" asChild>
-                <Link href="/submit">Submit Your Project</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Carousel Section */}
-      {featuredListings.length > 0 && (
-        <section className="border-b border-border">
-          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="font-body text-2xl font-semibold text-foreground">
-                Featured
-              </h2>
-              <Link
-                href="/browse?visibility=featured"
-                className="text-sm text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
-              >
-                View all featured
-              </Link>
-            </div>
-            <FeaturedCarousel listings={featuredListings} />
-          </div>
-        </section>
-      )}
-
-      {/* Category Type Cards */}
+    <FadeIn>
       <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="font-body text-2xl font-semibold text-foreground mb-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <h2 className="font-heading text-3xl font-normal text-foreground mb-10">
             Browse by Type
           </h2>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {/* Agents */}
-            <Link
-              href="/browse?type=agent"
-              className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
-            >
-              <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-purple-500/50 dark:hover:border-purple-400/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-                      <Bot className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h3 className="font-body text-lg font-semibold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                        Agents
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {agents.length} listings
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Autonomous AI with Soul, Mind, and Body. The core of the
-                    Think Agent Standard.
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Tools */}
-            <Link
-              href="/browse?type=tool"
-              className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
-            >
-              <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-blue-500/50 dark:hover:border-blue-400/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                      <Wrench className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h3 className="font-body text-lg font-semibold text-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                        Tools
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {tools.length} listings
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Modules that agents use to get things done. Calculate,
-                    fetch, send, and more.
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-
-            {/* Apps */}
-            <Link
-              href="/browse?type=app"
-              className="group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-xl"
-            >
-              <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-green-500/50 dark:hover:border-green-400/50">
-                <CardContent className="p-6">
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-                      <AppWindow className="h-6 w-6" aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h3 className="font-body text-lg font-semibold text-foreground group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
-                        Apps
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {apps.length} listings
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    Full applications built on Think. Productivity tools,
-                    creative suites, and more.
-                  </p>
-                </CardContent>
-              </Card>
-            </Link>
-          </div>
+          <CategoryGrid counts={categoryCounts} />
         </div>
       </section>
+    </FadeIn>
+  );
+}
 
-      {/* What is User-Owned AI? */}
-      <section className="border-b border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
-              What is User-Owned AI?
-            </h2>
-            <p className="text-lg text-muted-foreground mb-4">
-              Most AI today is rented. You use it through someone else&apos;s
-              servers, your data feeds their models, and you have no say in how
-              it works or changes.
-            </p>
-            <p className="text-lg text-muted-foreground mb-4">
-              <strong className="text-foreground">User-owned AI is different.</strong>{" "}
-              Built on the{" "}
-              <a
-                href="https://docs.thinkagents.ai/whitepaper/think-agent-standard"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-primary hover:underline"
-              >
-                Think Agent Standard
-              </a>
-              , these agents have verifiable identity, portable memory, and
-              interfaces you control. You own the AI, not the other way around.
-            </p>
-            <p className="text-muted-foreground">
-              Every project in this directory is built on these principles.
-            </p>
-          </div>
-        </div>
-      </section>
+async function NotableSection() {
+  const data = await fetchListings({ limit: 6 });
+  const allListings = data.listings as unknown as Listing[];
 
-      {/* New & Notable */}
+  return (
+    <FadeIn>
       <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="font-body text-2xl font-semibold text-foreground">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between mb-10">
+            <h2 className="font-heading text-3xl font-normal text-foreground">
               New & Notable
             </h2>
             <Link
@@ -235,15 +130,23 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+    </FadeIn>
+  );
+}
 
-      {/* Categories */}
+async function CategoriesListSection() {
+  const data = await fetchCategories();
+  const categories = data.categories;
+
+  return (
+    <FadeIn>
       <section className="border-b border-border">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="font-body text-2xl font-semibold text-foreground mb-8">
+        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+          <h2 className="font-heading text-3xl font-normal text-foreground mb-10">
             Browse by Category
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category) => (
+            {categories.map((category: any) => (
               <Link
                 key={category.id}
                 href={`/browse?category=${category.slug}`}
@@ -272,27 +175,135 @@ export default async function HomePage() {
           </div>
         </div>
       </section>
+    </FadeIn>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Layout>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+
+      {/* Hero Section */}
+      <HeroSection />
+
+      {/* Featured Section */}
+      <Suspense fallback={
+        <section className="border-b border-border bg-card/50">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <FeaturedGridSkeleton />
+          </div>
+        </section>
+      }>
+        <FeaturedSection />
+      </Suspense>
+
+      {/* Category Type Cards */}
+      <Suspense fallback={
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <div className="grid gap-6 sm:grid-cols-3">
+              <div className="h-48 bg-muted animate-pulse rounded-xl" />
+              <div className="h-48 bg-muted animate-pulse rounded-xl" />
+              <div className="h-48 bg-muted animate-pulse rounded-xl" />
+            </div>
+          </div>
+        </section>
+      }>
+        <CategorySection />
+      </Suspense>
+
+      {/* What is User-Owned AI? */}
+      <FadeIn>
+        <section className="border-b border-border bg-muted/30 relative">
+           <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[400px] h-[400px] bg-primary/5 blur-3xl rounded-full pointer-events-none" />
+          <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 relative z-10">
+            <div className="max-w-3xl mx-auto text-center">
+              <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-8">
+                What is User-Owned AI?
+              </h2>
+              <div className="prose prose-lg dark:prose-invert mx-auto text-muted-foreground leading-relaxed">
+                <p className="mb-6">
+                  Most AI today is rented. You use it through someone else&apos;s
+                  servers, your data feeds their models, and you have no say in how
+                  it works or changes.
+                </p>
+                <p className="mb-6">
+                  <strong className="text-foreground font-semibold">User-owned AI is different.</strong>{" "}
+                  Built on the{" "}
+                  <a
+                    href="https://docs.thinkagents.ai/whitepaper/think-agent-standard"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Think Agent Standard
+                  </a>
+                  , these agents have verifiable identity, portable memory, and
+                  interfaces you control. You own the AI, not the other way around.
+                </p>
+                <p>
+                  Every project in this directory is built on these principles.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </FadeIn>
+
+      {/* New & Notable */}
+      <Suspense fallback={
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => <ListingCardSkeleton key={i} />)}
+            </div>
+          </div>
+        </section>
+      }>
+        <NotableSection />
+      </Suspense>
+
+      {/* Categories List */}
+      <Suspense fallback={
+        <section className="border-b border-border">
+          <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-muted animate-pulse rounded-lg" />)}
+            </div>
+          </div>
+        </section>
+      }>
+        <CategoriesListSection />
+      </Suspense>
 
       {/* CTA Section */}
-      <section className="bg-gradient-to-br from-primary/5 via-transparent to-primary/10">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
-          <div className="text-center">
-            <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
-              Building on Think?
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-8">
-              Submit your project to the Think Marketplace. Get discovered by
-              users and builders in the Think ecosystem.
-            </p>
-            <Button size="lg" asChild>
-              <Link href="/submit">
-                Submit Your Listing
-                <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
-              </Link>
-            </Button>
+      <FadeIn>
+        <section className="bg-gradient-to-br from-primary/5 via-transparent to-primary/10 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay pointer-events-none" />
+          <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8 relative">
+            <div className="text-center">
+              <h2 className="font-heading text-4xl tracking-tight text-foreground sm:text-5xl mb-6">
+                Building on Think?
+              </h2>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10">
+                Submit your project to the Think Marketplace. Get discovered by
+                users and builders in the Think ecosystem.
+              </p>
+              <Button size="lg" asChild className="h-12 px-8 text-base shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                <Link href="/submit">
+                  Submit Your Listing
+                  <ArrowRight className="ml-2 h-4 w-4" aria-hidden="true" />
+                </Link>
+              </Button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </FadeIn>
     </Layout>
   );
 }

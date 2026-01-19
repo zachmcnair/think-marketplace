@@ -17,7 +17,9 @@
       "Bash(jq:*)",
       "Bash(openssl rand:*)",
       "Bash(npm run build:*)",
-      "Bash(pnpm install:*)"
+      "Bash(pnpm install:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)"
     ]
   }
 }

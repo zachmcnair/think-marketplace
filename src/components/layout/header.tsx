@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Menu } from "lucide-react";
 import { useState, useEffect } from "react";
+import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
@@ -25,6 +26,18 @@ export function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  
+  const { scrollY } = useScroll();
+
+  useMotionValueEvent(scrollY, "change", (latest) => {
+    const previous = scrollY.getPrevious() ?? 0;
+    if (latest > previous && latest > 150) {
+      setHidden(true);
+    } else {
+      setHidden(false);
+    }
+  });
 
   useEffect(() => {
     setMounted(true);
@@ -40,7 +53,15 @@ export function Header() {
     : "/think-marketplace-wordmark-light-mode.svg";
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <motion.header
+      variants={{
+        visible: { y: 0 },
+        hidden: { y: "-100%" },
+      }}
+      animate={hidden ? "hidden" : "visible"}
+      transition={{ duration: 0.35, ease: "easeInOut" }}
+      className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+    >
       <nav
         className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
         aria-label="Main navigation"
@@ -49,16 +70,21 @@ export function Header() {
         <div className="flex lg:flex-1">
           <Link
             href="/"
-            className="-m-1.5 p-1.5 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+            className="-m-1.5 p-1.5 flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md group"
           >
-            <Image
-              src={logoSrc}
-              alt=""
-              width={32}
-              height={36}
-              className="h-9 w-auto"
-              priority
-            />
+            <motion.div
+              whileHover={{ rotate: 10, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
+              <Image
+                src={logoSrc}
+                alt=""
+                width={32}
+                height={36}
+                className="h-9 w-auto"
+                priority
+              />
+            </motion.div>
             <Image
               src={wordmarkSrc}
               alt="Think Marketplace"
@@ -77,13 +103,19 @@ export function Header() {
               key={item.name}
               href={item.href}
               className={cn(
-                "text-sm font-medium transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md px-2 py-1",
+                "text-sm font-medium transition-all hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md px-2 py-1 relative",
                 pathname === item.href
                   ? "text-primary"
                   : "text-muted-foreground"
               )}
             >
               {item.name}
+              {pathname === item.href && (
+                <motion.div
+                  layoutId="activeNav"
+                  className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary rounded-full"
+                />
+              )}
             </Link>
           ))}
         </div>
@@ -92,7 +124,7 @@ export function Header() {
         <div className="hidden lg:flex lg:flex-1 lg:justify-end lg:items-center lg:gap-x-4">
           <ThemeToggle />
           <LoginButton />
-          <Button asChild>
+          <Button asChild className="shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
             <Link href="/submit">Submit Listing</Link>
           </Button>
         </div>
@@ -141,6 +173,6 @@ export function Header() {
           </Sheet>
         </div>
       </nav>
-    </header>
+    </motion.header>
   );
 }
