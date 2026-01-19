@@ -172,8 +172,8 @@ export function FeaturedCarousel({ listings }: FeaturedCarouselProps) {
         variant="outline"
         size="icon"
         className={cn(
-          "absolute -left-4 z-20 rounded-full bg-background shadow-lg border-border -translate-y-1/2",
-          "hidden sm:flex",
+          "absolute z-20 rounded-full bg-background shadow-lg border-border -translate-y-1/2",
+          "left-2 sm:-left-4 h-10 w-10 sm:h-9 sm:w-9",
           !canScrollPrev && "opacity-50 cursor-not-allowed"
         )}
         style={{ top: imageHeight ? `${imageHeight / 2}px` : '80px' }}
@@ -187,8 +187,8 @@ export function FeaturedCarousel({ listings }: FeaturedCarouselProps) {
         variant="outline"
         size="icon"
         className={cn(
-          "absolute -right-4 z-20 rounded-full bg-background shadow-lg border-border -translate-y-1/2",
-          "hidden sm:flex",
+          "absolute z-20 rounded-full bg-background shadow-lg border-border -translate-y-1/2",
+          "right-2 sm:-right-4 h-10 w-10 sm:h-9 sm:w-9",
           !canScrollNext && "opacity-50 cursor-not-allowed"
         )}
         style={{ top: imageHeight ? `${imageHeight / 2}px` : '80px' }}

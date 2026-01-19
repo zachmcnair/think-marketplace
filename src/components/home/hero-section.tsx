@@ -15,8 +15,8 @@ export function HeroSection() {
         <BackgroundGrid
           className="[mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_80%)] opacity-20"
         />
-        <div className="absolute top-0 left-1/4 h-[500px] w-[500px] rounded-full bg-primary/10 blur-[100px] opacity-50" />
-        <div className="absolute bottom-0 right-1/4 h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-[100px] opacity-30" />
+        <div className="absolute top-0 left-1/4 h-[250px] w-[250px] sm:h-[350px] sm:w-[350px] md:h-[500px] md:w-[500px] rounded-full bg-primary/10 blur-[100px] opacity-50" />
+        <div className="absolute bottom-0 right-1/4 h-[200px] w-[200px] sm:h-[300px] sm:w-[300px] md:h-[400px] md:w-[400px] rounded-full bg-purple-500/10 blur-[100px] opacity-30" />
       </div>
 
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-24 sm:px-6 sm:py-32 lg:px-8">

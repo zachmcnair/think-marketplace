@@ -15,7 +15,7 @@ export function FeaturedGrid({ listings }: { listings: Listing[] }) {
         <div
           key={listing.id}
           className={cn(
-            "h-full min-h-[300px]",
+            "h-full min-h-[200px] sm:min-h-[250px] md:min-h-[300px]",
             i === 0 ? "md:col-span-4 md:row-span-2" : "md:col-span-2 md:row-span-1"
           )}
         >

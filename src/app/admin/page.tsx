@@ -376,7 +376,7 @@ export default function AdminPage() {
               </form>
             </div>
           </SpotlightCard>
-          <p className="text-[10px] uppercase tracking-[0.2em] text-center text-muted-foreground/50 mt-8 font-semibold">
+          <p className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-center text-muted-foreground/50 mt-8 font-semibold">
             SECURE ACCESS ONLY • THINK PROTOCOL
           </p>
         </motion.div>
@@ -412,7 +412,7 @@ export default function AdminPage() {
             <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
               {listing.short_description}
             </p>
-            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground">
+            <div className="flex items-center gap-3 text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-muted-foreground">
               <span className="text-foreground/70">{listing.builder?.name || 'Unknown Builder'}</span>
               <span className="w-1 h-1 rounded-full bg-border" />
               <div className="flex items-center gap-1">
@@ -496,7 +496,7 @@ export default function AdminPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline" className={cn(
-                    "uppercase text-[10px] tracking-widest",
+                    "uppercase text-[11px] sm:text-xs tracking-widest",
                     selectedListing.review_state === 'approved' ? 'text-emerald-500 border-emerald-500/30 bg-emerald-500/5' :
                     selectedListing.review_state === 'rejected' ? 'text-red-500 border-red-500/30 bg-red-500/5' : 'text-amber-500 border-amber-500/30 bg-amber-500/5'
                   )}>
@@ -700,7 +700,7 @@ export default function AdminPage() {
             </div>
             <div>
               <h1 className="font-heading text-xl font-normal text-foreground">Think OS</h1>
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-bold">Admin Central</p>
+              <p className="text-[11px] sm:text-xs uppercase tracking-widest text-muted-foreground font-bold">Admin Central</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -720,7 +720,7 @@ export default function AdminPage() {
       <main className="max-w-7xl mx-auto px-4 py-10 relative z-10">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <TabsList className="h-14 p-1.5 rounded-2xl bg-muted/30 border border-border/50 backdrop-blur-sm self-start">
+            <TabsList className="h-14 p-1.5 rounded-2xl bg-muted/30 border border-border/50 backdrop-blur-sm self-start max-w-full overflow-x-auto">
               <TabsTrigger value="overview" className="rounded-xl px-6 gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary">
                 <LayoutDashboard className="h-4 w-4" />
                 Overview
@@ -729,7 +729,7 @@ export default function AdminPage() {
                 <Clock className="h-4 w-4" />
                 Review
                 {stats.pending > 0 && (
-                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-bold text-primary">
                     {stats.pending}
                   </span>
                 )}
@@ -745,7 +745,7 @@ export default function AdminPage() {
             </TabsList>
 
             {(activeTab === 'pending' || activeTab === 'all') && (
-              <div className="relative group min-w-[300px]">
+              <div className="relative group w-full md:w-auto md:min-w-[300px]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   placeholder="Search project or builder..."
@@ -847,12 +847,12 @@ export default function AdminPage() {
                 <div className="p-6 rounded-2xl bg-muted/20 border border-border/50 space-y-6">
                    {allListings.slice(0, 3).map(listing => (
                      <div key={listing.id} className="flex items-center gap-4">
-                        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-[10px] font-bold uppercase", typeColors[listing.type])}>
+                        <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center text-[11px] sm:text-xs font-bold uppercase", typeColors[listing.type])}>
                            {listing.type.charAt(0)}
                         </div>
                         <div className="flex-1 min-w-0">
                            <p className="text-sm font-medium truncate">{listing.name}</p>
-                           <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{listing.review_state} • {new Date(listing.updated_at).toLocaleDateString()}</p>
+                           <p className="text-[11px] sm:text-xs text-muted-foreground uppercase tracking-wider">{listing.review_state} • {new Date(listing.updated_at).toLocaleDateString()}</p>
                         </div>
                      </div>
                    ))}
