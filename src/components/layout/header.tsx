@@ -3,9 +3,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useTheme } from "next-themes";
 import { Menu } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, useScroll, useMotionValueEvent } from "framer-motion";
 
 import { Button } from "@/components/ui/button";
@@ -24,8 +23,6 @@ const navigation = [
 export function Header() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [hidden, setHidden] = useState(false);
   
   const { scrollY } = useScroll();
@@ -38,19 +35,6 @@ export function Header() {
       setHidden(false);
     }
   });
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Use light mode assets as default during SSR
-  const logoSrc = mounted && resolvedTheme === "dark" 
-    ? "/think-brainfist-darkmode-mode.svg" 
-    : "/think-brainfist-light-mode.svg";
-  
-  const wordmarkSrc = mounted && resolvedTheme === "dark"
-    ? "/think-marketplace-wordmark-dark-mode-white.svg"
-    : "/think-marketplace-wordmark-light-mode.svg";
 
   return (
     <motion.header
@@ -77,20 +61,36 @@ export function Header() {
               transition={{ type: "spring", stiffness: 400, damping: 10 }}
             >
               <Image
-                src={logoSrc}
+                src="/think-brainfist-light-mode.svg"
                 alt=""
                 width={32}
                 height={36}
-                className="h-9 w-auto"
+                className="h-9 w-auto dark:hidden"
+                priority
+              />
+              <Image
+                src="/think-brainfist-darkmode-mode.svg"
+                alt=""
+                width={32}
+                height={36}
+                className="h-9 w-auto hidden dark:block"
                 priority
               />
             </motion.div>
             <Image
-              src={wordmarkSrc}
+              src="/think-marketplace-wordmark-light-mode.svg"
               alt="Think Marketplace"
               width={120}
               height={16}
-              className="h-4 w-auto ml-1"
+              className="h-4 w-auto ml-1 dark:hidden"
+              priority
+            />
+            <Image
+              src="/think-marketplace-wordmark-dark-mode-white.svg"
+              alt="Think Marketplace"
+              width={120}
+              height={16}
+              className="h-4 w-auto ml-1 hidden dark:block"
               priority
             />
           </Link>

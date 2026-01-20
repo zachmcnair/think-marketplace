@@ -12,7 +12,7 @@ import { HeroSection } from "@/components/home/hero-section";
 import { CategoryGrid } from "@/components/home/category-grid";
 import { FadeIn } from "@/components/ui/fade-in";
 import { fetchFeaturedListings, fetchListings, fetchCategories } from "@/lib/api";
-import type { Listing } from "@/types";
+import type { Listing, Category } from "@/types";
 
 export const dynamic = 'force-dynamic'
 
@@ -148,7 +148,7 @@ async function CategoriesListSection() {
             Browse by Category
           </h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {categories.map((category: any) => (
+            {categories.map((category: Category) => (
               <Link
                 key={category.id}
                 href={`/browse?category=${category.slug}`}

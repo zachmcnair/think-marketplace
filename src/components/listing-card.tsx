@@ -172,7 +172,6 @@ export function ListingCard({ listing, featured = false }: ListingCardProps) {
 
 // Compact variant for grid displays or small areas
 export function ListingCardCompact({ listing }: { listing: Listing }) {
-  const TypeIcon = typeIcons[listing.type];
   const iconSrc = listing.icon_url || DEFAULT_ICON;
 
   return (

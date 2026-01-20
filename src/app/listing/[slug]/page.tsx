@@ -14,19 +14,18 @@ import {
   Cpu,
   Wallet,
   Monitor,
-  Share2
 } from "lucide-react";
 
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { fetchListing, fetchBuilder } from "@/lib/api";
 import { ListingCard } from "@/components/listing-card";
 import { BackgroundGrid } from "@/components/ui/background-grid";
 import { ShareButton } from "@/components/share-button";
+import { ListingEditLink } from "@/components/listing-edit-link";
 import { cn, getBaseUrl } from "@/lib/utils";
 import type { Listing } from "@/types";
 
@@ -373,6 +372,7 @@ export default async function ListingPage({
                     </a>
                   </Button>
                 )}
+                <ListingEditLink slug={listing.slug} />
                 <div className="flex gap-2">
                   {listing.links.docs && (
                     <Button variant="outline" size="icon" className="h-12 w-12 rounded-xl border-border/50" asChild title="Documentation">

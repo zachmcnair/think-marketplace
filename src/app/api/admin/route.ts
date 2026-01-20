@@ -1,9 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyAdminCode, createAdminSession, getAdminCookieName, isAdminAuthenticated } from '@/lib/auth/admin'
+import { getClientIp, rateLimit } from '@/lib/security/rate-limit'
 
 // POST - Login
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers)
+    const limiter = rateLimit(`admin-login:${ip}`, 5, 15 * 60_000)
+
+    if (!limiter.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429 }
+      )
+    }
+
     const body = await request.json()
     const { code } = body
 

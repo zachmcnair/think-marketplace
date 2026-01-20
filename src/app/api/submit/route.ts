@@ -3,6 +3,7 @@ import prisma from '@/lib/db'
 import { verifyAuthToken } from '@/lib/auth/verify'
 import { checkNftOwnership } from '@/lib/auth/nft'
 import { ListingType, ListingStatus } from '@prisma/client'
+import { getClientIp, rateLimit } from '@/lib/security/rate-limit'
 
 // Slugify helper
 function slugify(text: string): string {
@@ -28,8 +29,22 @@ async function generateUniqueSlug(name: string): Promise<string> {
   return slug
 }
 
+function normalizeWallet(wallet: string): string {
+  return wallet.trim().toLowerCase()
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers)
+    const limiter = rateLimit(`submit:${ip}`, 10, 60_000)
+
+    if (!limiter.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again shortly.' },
+        { status: 429 }
+      )
+    }
+
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     const user = await verifyAuthToken(authHeader)
@@ -54,8 +69,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const normalizedWallet = normalizeWallet(walletAddress)
+
+    if (!user.walletAddresses.includes(normalizedWallet)) {
+      return NextResponse.json(
+        { error: 'Wallet address does not match authenticated user' },
+        { status: 403 }
+      )
+    }
+
     // Verify NFT ownership
-    const isHolder = await checkNftOwnership(walletAddress)
+    const isHolder = await checkNftOwnership(normalizedWallet)
 
     if (!isHolder) {
       return NextResponse.json(
@@ -93,10 +117,7 @@ export async function POST(request: NextRequest) {
     // Find or create builder
     let builder = await prisma.builder.findFirst({
       where: {
-        OR: [
-          { walletAddress: walletAddress },
-          { name: builderName },
-        ],
+        walletAddress: normalizedWallet,
       },
     })
 
@@ -107,7 +128,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: builderName,
           slug: builderSlug,
-          walletAddress: walletAddress,
+          walletAddress: normalizedWallet,
           bio: body.builderBio || null,
           website: body.builderWebsite || null,
           twitter: body.builderTwitter || null,
@@ -133,7 +154,7 @@ export async function POST(request: NextRequest) {
         media: [],
         thinkFit: body.thinkFit || {},
         builderId: builder.id,
-        submitterWallet: walletAddress,
+        submitterWallet: normalizedWallet,
         visibility: 'public',
         reviewState: 'pending',
         categories: categories?.length ? {

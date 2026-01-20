@@ -1,5 +1,4 @@
 import { ListingCardSkeleton } from "./listing-card-skeleton";
-import { cn } from "@/lib/utils";
 
 export function FeaturedGridSkeleton() {
   return (

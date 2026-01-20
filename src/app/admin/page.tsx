@@ -7,6 +7,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -45,6 +53,7 @@ import {
   ChevronRight,
   Wallet,
   Trash2,
+  PencilLine,
 } from 'lucide-react'
 import { SpotlightCard } from '@/components/ui/spotlight-card'
 import { BackgroundGrid } from '@/components/ui/background-grid'
@@ -76,8 +85,27 @@ interface Listing {
   }
 }
 
+interface EditRequest {
+  id: string
+  status: 'pending' | 'approved' | 'rejected'
+  requester_wallet: string
+  proposed_changes: {
+    name?: string
+    type?: Listing['type']
+    shortDescription?: string
+    longDescription?: string | null
+    status?: string
+    tags?: string[]
+    links?: Record<string, string>
+    categories?: string[]
+  }
+  created_at: string
+  listing: Listing
+}
+
 interface DashboardStats {
   pending: number
+  pendingEdits: number
   approved: number
   rejected: number
   featured: number
@@ -103,9 +131,18 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [pendingListings, setPendingListings] = useState<Listing[]>([])
   const [allListings, setAllListings] = useState<Listing[]>([])
-  const [stats, setStats] = useState<DashboardStats>({ pending: 0, approved: 0, rejected: 0, featured: 0, total: 0 })
+  const [editRequests, setEditRequests] = useState<EditRequest[]>([])
+  const [stats, setStats] = useState<DashboardStats>({
+    pending: 0,
+    pendingEdits: 0,
+    approved: 0,
+    rejected: 0,
+    featured: 0,
+    total: 0,
+  })
   const [actionLoading, setActionLoading] = useState<string | null>(null)
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null)
+  const [selectedEditRequest, setSelectedEditRequest] = useState<EditRequest | null>(null)
   const [activeTab, setActiveTab] = useState('overview')
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -114,9 +151,33 @@ export default function AdminPage() {
   const [rejectReason, setRejectReason] = useState('')
   const [listingToReject, setListingToReject] = useState<string | null>(null)
 
+  // Edit rejection dialog state
+  const [editRejectDialogOpen, setEditRejectDialogOpen] = useState(false)
+  const [editRejectReason, setEditRejectReason] = useState('')
+  const [editRequestToReject, setEditRequestToReject] = useState<string | null>(null)
+
   // Delete dialog state
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [listingToDelete, setListingToDelete] = useState<Listing | null>(null)
+
+  // Admin edit dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [editFormError, setEditFormError] = useState('')
+  const [editFormData, setEditFormData] = useState({
+    id: '',
+    name: '',
+    type: 'app' as Listing['type'],
+    short_description: '',
+    long_description: '',
+    status: 'concept',
+    visibility: 'public',
+    tags: '',
+    categories: '',
+    website: '',
+    demo: '',
+    docs: '',
+    repo: '',
+  })
 
   // Check auth status on mount
   useEffect(() => {
@@ -128,19 +189,23 @@ export default function AdminPage() {
     if (!isAuthenticated) return
 
     try {
-      const [pendingRes, allRes] = await Promise.all([
+      const [pendingRes, allRes, editsRes] = await Promise.all([
         fetch('/api/admin/pending'),
         fetch('/api/admin/listings'),
+        fetch('/api/admin/edit-requests'),
       ])
 
       const pendingData = await pendingRes.json()
       const allData = await allRes.json()
+      const editsData = await editsRes.json()
 
       const pending = pendingData.listings || []
       const all = allData.listings || []
+      const edits = editsData.edit_requests || []
 
       setPendingListings(pending)
       setAllListings(all)
+      setEditRequests(edits)
 
       // Calculate stats
       const approved = all.filter((l: Listing) => l.review_state === 'approved').length
@@ -149,6 +214,7 @@ export default function AdminPage() {
 
       setStats({
         pending: pending.length,
+        pendingEdits: edits.length,
         approved,
         rejected,
         featured,
@@ -260,6 +326,56 @@ export default function AdminPage() {
     }
   }
 
+  function openEditRejectDialog(id: string) {
+    setEditRequestToReject(id)
+    setEditRejectReason('')
+    setEditRejectDialogOpen(true)
+  }
+
+  async function handleApproveEdit(id: string) {
+    setActionLoading(id)
+    try {
+      const res = await fetch(`/api/admin/edit-requests/${id}/approve`, {
+        method: 'POST',
+      })
+
+      if (res.ok) {
+        await fetchData()
+        setSelectedEditRequest(null)
+      }
+    } catch (error) {
+      console.error('Failed to approve edit request:', error)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
+  async function handleRejectEdit() {
+    if (!editRequestToReject) return
+
+    setActionLoading(editRequestToReject)
+    setEditRejectDialogOpen(false)
+
+    try {
+      const res = await fetch(`/api/admin/edit-requests/${editRequestToReject}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: editRejectReason || undefined }),
+      })
+
+      if (res.ok) {
+        await fetchData()
+        setSelectedEditRequest(null)
+      }
+    } catch (error) {
+      console.error('Failed to reject edit request:', error)
+    } finally {
+      setActionLoading(null)
+      setEditRequestToReject(null)
+      setEditRejectReason('')
+    }
+  }
+
   function openDeleteDialog(listing: Listing) {
     setListingToDelete(listing)
     setDeleteDialogOpen(true)
@@ -288,6 +404,74 @@ export default function AdminPage() {
     }
   }
 
+  function openEditDialog(listing: Listing) {
+    setEditFormError('')
+    setEditFormData({
+      id: listing.id,
+      name: listing.name,
+      type: listing.type,
+      short_description: listing.short_description,
+      long_description: listing.long_description || '',
+      status: listing.status,
+      visibility: listing.visibility,
+      tags: listing.tags.join(', '),
+      categories: listing.categories.join(', '),
+      website: listing.links?.website || '',
+      demo: listing.links?.demo || '',
+      docs: listing.links?.docs || '',
+      repo: listing.links?.repo || '',
+    })
+    setEditDialogOpen(true)
+  }
+
+  async function handleEditSave() {
+    if (!editFormData.id) return
+
+    setActionLoading(editFormData.id)
+    setEditFormError('')
+
+    try {
+      const res = await fetch(`/api/admin/listings/${editFormData.id}/update`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: editFormData.name,
+          type: editFormData.type,
+          shortDescription: editFormData.short_description,
+          longDescription: editFormData.long_description || null,
+          status: editFormData.status,
+          visibility: editFormData.visibility,
+          tags: editFormData.tags
+            ? editFormData.tags.split(',').map((tag) => tag.trim()).filter(Boolean)
+            : [],
+          categories: editFormData.categories
+            ? editFormData.categories.split(',').map((cat) => cat.trim()).filter(Boolean)
+            : [],
+          links: {
+            website: editFormData.website || null,
+            demo: editFormData.demo || null,
+            docs: editFormData.docs || null,
+            repo: editFormData.repo || null,
+          },
+        }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || 'Failed to update listing')
+      }
+
+      await fetchData()
+      setSelectedListing(null)
+      setEditDialogOpen(false)
+    } catch (error) {
+      console.error('Failed to update listing:', error)
+      setEditFormError(error instanceof Error ? error.message : 'Failed to update listing')
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   // Filter listings by search
   const filteredPending = pendingListings.filter(l =>
     l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -297,6 +481,11 @@ export default function AdminPage() {
   const filteredAll = allListings.filter(l =>
     l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     l.builder?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const filteredEdits = editRequests.filter(edit =>
+    edit.listing.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    edit.listing.builder?.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Loading state
@@ -459,6 +648,228 @@ export default function AdminPage() {
     )
   }
 
+  function renderEditRequestCard(editRequest: EditRequest) {
+    const TypeIcon = typeIcons[editRequest.listing.type]
+    const isSelected = selectedEditRequest?.id === editRequest.id
+
+    return (
+      <div
+        key={editRequest.id}
+        onClick={() => setSelectedEditRequest(editRequest)}
+        className={cn(
+          "group relative cursor-pointer transition-all duration-300 rounded-xl border p-4 bg-card/50 backdrop-blur-sm",
+          isSelected ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" : "border-border/50 hover:border-primary/30 hover:bg-muted/30"
+        )}
+      >
+        <div className="flex items-start gap-4">
+          <div className={cn("shrink-0 h-12 w-12 rounded-xl flex items-center justify-center border", typeColors[editRequest.listing.type])}>
+            <TypeIcon className="h-6 w-6" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <h3 className="font-heading text-lg font-medium truncate group-hover:text-primary transition-colors">
+                {editRequest.listing.name}
+              </h3>
+              <Badge variant="outline" className="uppercase text-[10px] tracking-widest text-amber-500 border-amber-500/30 bg-amber-500/5">
+                Edit Request
+              </Badge>
+            </div>
+            <p className="text-sm text-muted-foreground line-clamp-1 mb-2">
+              {editRequest.listing.short_description}
+            </p>
+            <div className="flex items-center gap-3 text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+              <span className="text-foreground/70">{editRequest.listing.builder?.name || 'Unknown Builder'}</span>
+              <span className="w-1 h-1 rounded-full bg-border" />
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                <span>{new Date(editRequest.created_at).toLocaleDateString()}</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex gap-1 shrink-0 self-center">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 rounded-lg text-emerald-500 hover:text-emerald-400 hover:bg-emerald-500/10"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleApproveEdit(editRequest.id)
+              }}
+              disabled={actionLoading === editRequest.id}
+            >
+              {actionLoading === editRequest.id ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Check className="h-5 w-5" />
+              )}
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-9 w-9 rounded-lg text-red-500 hover:text-red-400 hover:bg-red-500/10"
+              onClick={(e) => {
+                e.stopPropagation()
+                openEditRejectDialog(editRequest.id)
+              }}
+              disabled={actionLoading === editRequest.id}
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  function renderEditDetailPanel() {
+    if (!selectedEditRequest) {
+      return (
+        <div className="h-full flex flex-col items-center justify-center p-12 text-center rounded-2xl border border-dashed border-border/50 bg-muted/5">
+          <div className="h-20 w-20 rounded-full bg-muted/20 flex items-center justify-center mb-6">
+            <PencilLine className="h-10 w-10 text-muted-foreground/30" />
+          </div>
+          <h3 className="text-lg font-heading font-normal text-muted-foreground">Select an edit request to review</h3>
+          <p className="text-sm text-muted-foreground/60 mt-2">Original listing and proposed updates will appear here</p>
+        </div>
+      )
+    }
+
+    const { listing, proposed_changes: proposed } = selectedEditRequest
+
+    const changes = [
+      { label: 'Name', current: listing.name, proposed: proposed.name },
+      { label: 'Type', current: listing.type, proposed: proposed.type },
+      { label: 'Status', current: listing.status, proposed: proposed.status },
+      { label: 'Short Description', current: listing.short_description, proposed: proposed.shortDescription },
+      { label: 'Long Description', current: listing.long_description, proposed: proposed.longDescription },
+    ].filter((change) => change.proposed && change.proposed !== change.current)
+
+    const tagChange =
+      proposed.tags && proposed.tags.join(', ') !== listing.tags.join(', ')
+        ? { label: 'Tags', current: listing.tags.join(', '), proposed: proposed.tags.join(', ') }
+        : null
+
+    const categoryChange =
+      proposed.categories && proposed.categories.join(', ') !== listing.categories.join(', ')
+        ? { label: 'Categories', current: listing.categories.join(', '), proposed: proposed.categories.join(', ') }
+        : null
+
+    const linkChanges = Object.entries(proposed.links || {}).filter(([key, value]) => {
+      const currentValue = listing.links?.[key as keyof typeof listing.links]
+      return value && value !== currentValue
+    })
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="sticky top-24"
+      >
+        <Card className="rounded-2xl border-border/50 bg-card/50 backdrop-blur-sm shadow-2xl overflow-hidden">
+          <CardHeader className="pb-6 border-b border-border/50 bg-muted/20">
+            <div className="flex items-start gap-4">
+              <div className={cn("shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center border shadow-inner", typeColors[listing.type])}>
+                {(() => {
+                  const TypeIcon = typeIcons[listing.type]
+                  return <TypeIcon className="h-7 w-7" />
+                })()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <CardTitle className="text-2xl font-heading font-normal">{listing.name}</CardTitle>
+                  <Badge variant="outline" className="uppercase text-[11px] sm:text-xs tracking-widest text-amber-500 border-amber-500/30 bg-amber-500/5">
+                    Pending Edit
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Submitted by {listing.builder?.name || 'Unknown Builder'}
+                </p>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-8 space-y-8">
+            <div className="space-y-4">
+              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Proposed Updates</h4>
+              {changes.length === 0 && !tagChange && !categoryChange && linkChanges.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No changes detected in the submitted update.</p>
+              ) : (
+                <div className="space-y-3">
+                  {changes.map((change) => (
+                    <div key={change.label} className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{change.label}</p>
+                      <p className="text-sm text-muted-foreground">Current: {change.current || '—'}</p>
+                      <p className="text-sm text-foreground">Proposed: {change.proposed}</p>
+                    </div>
+                  ))}
+                  {tagChange && (
+                    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{tagChange.label}</p>
+                      <p className="text-sm text-muted-foreground">Current: {tagChange.current || '—'}</p>
+                      <p className="text-sm text-foreground">Proposed: {tagChange.proposed}</p>
+                    </div>
+                  )}
+                  {categoryChange && (
+                    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-2">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">{categoryChange.label}</p>
+                      <p className="text-sm text-muted-foreground">Current: {categoryChange.current || '—'}</p>
+                      <p className="text-sm text-foreground">Proposed: {categoryChange.proposed}</p>
+                    </div>
+                  )}
+                  {linkChanges.length > 0 && (
+                    <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
+                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Links</p>
+                      {linkChanges.map(([key, value]) => (
+                        <div key={key} className="text-sm">
+                          <span className="text-muted-foreground capitalize">{key}:</span>{' '}
+                          <span className="text-foreground">{value}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-[0.2em] text-muted-foreground">Requester Wallet</h4>
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-muted/50 border border-border/50">
+                <Wallet className="h-4 w-4 text-muted-foreground" />
+                <p className="text-xs font-mono text-muted-foreground break-all">
+                  {selectedEditRequest.requester_wallet}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-border/50">
+              <div className="grid grid-cols-2 gap-3">
+                <Button
+                  className="h-12 rounded-xl bg-emerald-600 hover:bg-emerald-700 shadow-lg shadow-emerald-500/20"
+                  onClick={() => handleApproveEdit(selectedEditRequest.id)}
+                  disabled={actionLoading === selectedEditRequest.id}
+                >
+                  {actionLoading === selectedEditRequest.id ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle2 className="h-5 w-5 mr-2" />
+                  )}
+                  Approve Update
+                </Button>
+                <Button
+                  variant="ghost"
+                  className="h-12 rounded-xl text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                  onClick={() => openEditRejectDialog(selectedEditRequest.id)}
+                  disabled={actionLoading === selectedEditRequest.id}
+                >
+                  <XCircle className="h-5 w-5 mr-2" />
+                  Reject Update
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
+    )
+  }
   // Render detail panel
   function renderDetailPanel() {
     if (!selectedListing) {
@@ -643,6 +1054,15 @@ export default function AdminPage() {
                     <XCircle className="h-5 w-5 mr-2" />
                     Reject Submission
                   </Button>
+                  <Button
+                    variant="outline"
+                    className="col-span-2 h-12 rounded-xl"
+                    onClick={() => openEditDialog(selectedListing)}
+                    disabled={actionLoading === selectedListing.id}
+                  >
+                    <PencilLine className="h-4 w-4 mr-2" />
+                    Edit Listing
+                  </Button>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -655,6 +1075,10 @@ export default function AdminPage() {
                         </Button>
                       </Link>
                     )}
+                    <Button variant="outline" className="h-12 px-6 rounded-xl" onClick={() => openEditDialog(selectedListing)}>
+                      <PencilLine className="h-4 w-4 mr-2" />
+                      Edit Listing
+                    </Button>
                     <Button variant="ghost" className="h-12 px-6 rounded-xl" onClick={() => setSelectedListing(null)}>
                       Close
                     </Button>
@@ -734,6 +1158,15 @@ export default function AdminPage() {
                   </span>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="edits" className="rounded-xl px-6 gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary">
+                <PencilLine className="h-4 w-4" />
+                Edits
+                {stats.pendingEdits > 0 && (
+                  <span className="flex h-6 min-w-6 items-center justify-center rounded-full bg-primary/10 px-2 text-xs font-bold text-primary">
+                    {stats.pendingEdits}
+                  </span>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="all" className="rounded-xl px-6 gap-2 text-sm font-medium data-[state=active]:bg-card data-[state=active]:shadow-lg data-[state=active]:text-primary">
                 <ListChecks className="h-4 w-4" />
                 Directory
@@ -744,7 +1177,7 @@ export default function AdminPage() {
               </TabsTrigger>
             </TabsList>
 
-            {(activeTab === 'pending' || activeTab === 'all') && (
+            {(activeTab === 'pending' || activeTab === 'edits' || activeTab === 'all') && (
               <div className="relative group w-full md:w-auto md:min-w-[300px]">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
@@ -760,7 +1193,7 @@ export default function AdminPage() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-10 outline-none">
             {/* Stats Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
               <div className="cursor-pointer group" onClick={() => setActiveTab('pending')}>
                 <SpotlightCard className="h-full border-amber-500/20 hover:border-amber-500/40" spotlightColor="rgba(245, 158, 11, 0.1)">
                   <div className="p-8">
@@ -773,6 +1206,23 @@ export default function AdminPage() {
                     <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Pending Review</p>
                     <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-amber-500/70 group-hover:text-amber-500 transition-colors">
                       Take Action <ChevronRight className="h-3 w-3" />
+                    </div>
+                  </div>
+                </SpotlightCard>
+              </div>
+
+              <div className="cursor-pointer group" onClick={() => setActiveTab('edits')}>
+                <SpotlightCard className="h-full border-blue-500/20 hover:border-blue-500/40" spotlightColor="rgba(59, 130, 246, 0.1)">
+                  <div className="p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="h-14 w-14 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                        <PencilLine className="h-7 w-7 text-blue-500" />
+                      </div>
+                      <span className="text-4xl font-heading font-normal text-blue-500">{stats.pendingEdits}</span>
+                    </div>
+                    <p className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Pending Edits</p>
+                    <div className="mt-4 flex items-center gap-1.5 text-xs font-bold text-blue-500/70 group-hover:text-blue-500 transition-colors">
+                      Review Updates <ChevronRight className="h-3 w-3" />
                     </div>
                   </div>
                 </SpotlightCard>
@@ -903,6 +1353,45 @@ export default function AdminPage() {
             )}
           </TabsContent>
 
+          {/* Edits Tab */}
+          <TabsContent value="edits" className="outline-none">
+            {filteredEdits.length === 0 ? (
+              <div className="py-32 text-center">
+                <div className="h-20 w-20 rounded-full bg-muted/50 flex items-center justify-center mx-auto mb-6 text-muted-foreground/30">
+                  <PencilLine className="h-10 w-10" />
+                </div>
+                <h3 className="text-2xl font-heading font-normal">No pending edits found</h3>
+                <p className="text-muted-foreground mt-2">All updates have been reviewed</p>
+              </div>
+            ) : (
+              <div className="grid gap-10 lg:grid-cols-5">
+                <div className="lg:col-span-2 space-y-4">
+                  <div className="flex items-center justify-between px-2 mb-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+                      Queue: {filteredEdits.length} items
+                    </p>
+                  </div>
+                  <AnimatePresence mode="popLayout">
+                    {filteredEdits.map((editRequest) => (
+                      <motion.div
+                        key={editRequest.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        {renderEditRequestCard(editRequest)}
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+                <div className="lg:col-span-3">
+                  {renderEditDetailPanel()}
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
           {/* All Listings Tab */}
           <TabsContent value="all" className="outline-none">
             {filteredAll.length === 0 ? (
@@ -1013,6 +1502,38 @@ export default function AdminPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Request Reject Dialog */}
+      <Dialog open={editRejectDialogOpen} onOpenChange={setEditRejectDialogOpen}>
+        <DialogContent className="rounded-[2rem] border-border/50 shadow-2xl overflow-hidden p-0">
+          <div className="p-8 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 font-heading text-2xl font-normal text-red-500">
+                <XCircle className="h-7 w-7" />
+                Reject Update
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground leading-relaxed">
+                Share feedback so the builder knows what to adjust before resubmitting.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              placeholder="e.g., Please clarify the updated short description..."
+              value={editRejectReason}
+              onChange={(e) => setEditRejectReason(e.target.value)}
+              rows={5}
+              className="rounded-2xl bg-muted/30 border-border/50 focus:ring-red-500/20 resize-none p-4"
+            />
+            <div className="flex gap-3 pt-2">
+              <Button variant="ghost" className="flex-1 h-14 rounded-xl" onClick={() => setEditRejectDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" className="flex-1 h-14 rounded-xl shadow-lg shadow-red-500/20" onClick={handleRejectEdit}>
+                Confirm Rejection
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent className="rounded-[2rem] border-border/50 shadow-2xl overflow-hidden p-0">
@@ -1040,6 +1561,185 @@ export default function AdminPage() {
                 Permanently Delete
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Edit Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="rounded-[2rem] border-border/50 shadow-2xl overflow-hidden p-0">
+          <div className="p-8 space-y-6 max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-3 font-heading text-2xl font-normal">
+                <PencilLine className="h-7 w-7 text-primary" />
+                Edit Listing
+              </DialogTitle>
+              <DialogDescription className="text-muted-foreground leading-relaxed">
+                Changes publish immediately and do not require review.
+              </DialogDescription>
+            </DialogHeader>
+
+            {editFormError && (
+              <div className="flex items-center gap-2 p-4 rounded-xl bg-destructive/10 text-destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <p className="text-sm">{editFormError}</p>
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-name">Name</Label>
+                  <Input
+                    id="admin-edit-name"
+                    value={editFormData.name}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, name: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-type">Type</Label>
+                  <Select
+                    value={editFormData.type}
+                    onValueChange={(value) => setEditFormData((prev) => ({ ...prev, type: value as Listing['type'] }))}
+                  >
+                    <SelectTrigger id="admin-edit-type">
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="app">App</SelectItem>
+                      <SelectItem value="tool">Tool</SelectItem>
+                      <SelectItem value="agent">Agent</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="admin-edit-short">Short Description</Label>
+                <Input
+                  id="admin-edit-short"
+                  value={editFormData.short_description}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, short_description: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="admin-edit-long">Full Description</Label>
+                <Textarea
+                  id="admin-edit-long"
+                  value={editFormData.long_description}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, long_description: e.target.value }))}
+                  rows={5}
+                  className="rounded-2xl bg-muted/30 border-border/50 focus:ring-primary/20 resize-none p-4"
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-status">Status</Label>
+                  <Select
+                    value={editFormData.status}
+                    onValueChange={(value) => setEditFormData((prev) => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger id="admin-edit-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="live">Live</SelectItem>
+                      <SelectItem value="beta">Beta</SelectItem>
+                      <SelectItem value="concept">Concept</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-visibility">Visibility</Label>
+                  <Select
+                    value={editFormData.visibility}
+                    onValueChange={(value) => setEditFormData((prev) => ({ ...prev, visibility: value }))}
+                  >
+                    <SelectTrigger id="admin-edit-visibility">
+                      <SelectValue placeholder="Select visibility" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="public">Public</SelectItem>
+                      <SelectItem value="featured">Featured</SelectItem>
+                      <SelectItem value="unlisted">Unlisted</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-tags">Tags</Label>
+                  <Input
+                    id="admin-edit-tags"
+                    value={editFormData.tags}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, tags: e.target.value }))}
+                    placeholder="ai, productivity"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="admin-edit-categories">Categories</Label>
+                <Input
+                  id="admin-edit-categories"
+                  value={editFormData.categories}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, categories: e.target.value }))}
+                  placeholder="automation, agents"
+                />
+                <p className="text-xs text-muted-foreground">Comma-separated category slugs.</p>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-website">Website</Label>
+                  <Input
+                    id="admin-edit-website"
+                    value={editFormData.website}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, website: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-demo">Demo</Label>
+                  <Input
+                    id="admin-edit-demo"
+                    value={editFormData.demo}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, demo: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-docs">Docs</Label>
+                  <Input
+                    id="admin-edit-docs"
+                    value={editFormData.docs}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, docs: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="admin-edit-repo">Repo</Label>
+                  <Input
+                    id="admin-edit-repo"
+                    value={editFormData.repo}
+                    onChange={(e) => setEditFormData((prev) => ({ ...prev, repo: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="gap-3">
+              <Button variant="ghost" className="h-12 rounded-xl" onClick={() => setEditDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button className="h-12 rounded-xl" onClick={handleEditSave} disabled={actionLoading === editFormData.id}>
+                {actionLoading === editFormData.id ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

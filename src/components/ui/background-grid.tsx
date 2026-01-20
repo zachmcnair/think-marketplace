@@ -1,9 +1,10 @@
 "use client";
 
 import { useId } from "react";
+import type { SVGProps } from "react";
 import { cn } from "@/lib/utils";
 
-interface BackgroundGridProps {
+interface BackgroundGridProps extends SVGProps<SVGSVGElement> {
   width?: number;
   height?: number;
   x?: number;
@@ -11,7 +12,6 @@ interface BackgroundGridProps {
   squares?: Array<[x: number, y: number]>;
   strokeDasharray?: string;
   className?: string;
-  [key: string]: any;
 }
 
 export function BackgroundGrid({

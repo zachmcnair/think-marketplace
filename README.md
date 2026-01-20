@@ -118,6 +118,10 @@ S3_REGION="auto"
 
 # Privy Authentication
 NEXT_PUBLIC_PRIVY_APP_ID="..."
+PRIVY_APP_SECRET="..."
+# Privy JWT verification key or JWKS URL
+PRIVY_VERIFICATION_KEY="..."
+# PRIVY_JWKS_URL="https://auth.privy.io/api/v1/apps/{APP_ID}/jwks.json"
 
 # NFT Gating
 NFT_CONTRACT_ADDRESS="0x..."

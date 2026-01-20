@@ -2,9 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyAuthToken } from '@/lib/auth/verify'
 import { checkNftOwnership } from '@/lib/auth/nft'
 import { uploadFile, generateFilename, isValidImageType, MAX_FILE_SIZE } from '@/lib/storage/s3'
+import { getClientIp, rateLimit } from '@/lib/security/rate-limit'
+
+function normalizeWallet(wallet: string): string {
+  return wallet.trim().toLowerCase()
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const ip = getClientIp(request.headers)
+    const limiter = rateLimit(`upload:${ip}`, 20, 60_000)
+
+    if (!limiter.allowed) {
+      return NextResponse.json(
+        { error: 'Too many requests. Please try again shortly.' },
+        { status: 429 }
+      )
+    }
+
     // Verify authentication
     const authHeader = request.headers.get('authorization')
     const user = await verifyAuthToken(authHeader)
@@ -29,8 +44,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const normalizedWallet = normalizeWallet(walletAddress)
+
+    if (!user.walletAddresses.includes(normalizedWallet)) {
+      return NextResponse.json(
+        { error: 'Wallet address does not match authenticated user' },
+        { status: 403 }
+      )
+    }
+
     // Verify NFT ownership
-    const isHolder = await checkNftOwnership(walletAddress)
+    const isHolder = await checkNftOwnership(normalizedWallet)
 
     if (!isHolder) {
       return NextResponse.json(
