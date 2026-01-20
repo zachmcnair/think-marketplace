@@ -1,5 +1,6 @@
 import { Header } from "./header";
 import { Footer } from "./footer";
+import { PageTransition } from "./page-transition";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,7 +11,9 @@ export function Layout({ children }: LayoutProps) {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main id="main-content" className="flex-1" tabIndex={-1}>
-        {children}
+        <PageTransition>
+          {children}
+        </PageTransition>
       </main>
       <Footer />
     </div>

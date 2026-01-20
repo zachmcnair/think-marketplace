@@ -1,0 +1,221 @@
+// Think Marketplace Database Schema
+// Using Prisma ORM with Railway PostgreSQL
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =====================
+// Enums
+// =====================
+
+enum ListingType {
+  app
+  tool
+  agent
+}
+
+enum ListingStatus {
+  live
+  beta
+  concept
+}
+
+enum ListingVisibility {
+  featured
+  public
+  unlisted
+}
+
+enum ReviewState {
+  pending
+  approved
+  rejected
+}
+
+enum MindRuntime {
+  local
+  server
+  hybrid
+}
+
+enum InterfaceType {
+  web
+  desktop
+  extension
+  api
+  mobile
+}
+
+enum WalletAuthStatus {
+  yes
+  no
+  planned
+}
+
+enum EditRequestStatus {
+  pending
+  approved
+  rejected
+}
+
+// =====================
+// Models
+// =====================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @db.VarChar(100)
+  slug        String   @unique @db.VarChar(100)
+  description String?
+  icon        String?  @db.VarChar(50)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  listings ListingCategory[]
+
+  @@map("categories")
+}
+
+model Builder {
+  id            String   @id @default(uuid())
+  name          String   @db.VarChar(200)
+  slug          String   @unique @db.VarChar(200)
+  bio           String?
+  avatarUrl     String?  @map("avatar_url")
+  website       String?
+  twitter       String?  @db.VarChar(100)
+  github        String?  @db.VarChar(100)
+  discord       String?  @db.VarChar(100)
+  walletAddress String?  @map("wallet_address") @db.VarChar(100)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  listings Listing[]
+
+  @@map("builders")
+}
+
+model Listing {
+  id               String            @id @default(uuid())
+  name             String            @db.VarChar(200)
+  slug             String            @unique @db.VarChar(200)
+  type             ListingType
+  shortDescription String            @map("short_description") @db.VarChar(300)
+  longDescription  String?           @map("long_description")
+  status           ListingStatus     @default(concept)
+  tags             String[]          @default([])
+  iconUrl          String?           @map("icon_url")
+  thumbnailUrl     String?           @map("thumbnail_url")
+  builderId        String?           @map("builder_id")
+  visibility       ListingVisibility @default(public)
+  reviewState      ReviewState       @default(pending) @map("review_state")
+  submitterWallet  String?           @map("submitter_wallet") @db.VarChar(100)
+  rejectionReason  String?           @map("rejection_reason")
+
+  // JSON fields for flexible data
+  links    Json @default("{}")
+  media    Json @default("[]")
+  thinkFit Json @default("{}") @map("think_fit")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  builder      Builder?                      @relation(fields: [builderId], references: [id], onDelete: Cascade)
+  categories   ListingCategory[]
+  collections  FeaturedCollectionListing[]
+  editRequests EditRequest[]
+
+  @@index([type])
+  @@index([status])
+  @@index([visibility])
+  @@index([reviewState])
+  @@index([builderId])
+  @@index([createdAt(sort: Desc)])
+  @@map("listings")
+}
+
+model ListingCategory {
+  listingId  String @map("listing_id")
+  categoryId String @map("category_id")
+
+  listing  Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, categoryId])
+  @@map("listing_categories")
+}
+
+model FeaturedCollection {
+  id          String   @id @default(uuid())
+  title       String   @db.VarChar(200)
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  listings FeaturedCollectionListing[]
+
+  @@map("featured_collections")
+}
+
+model FeaturedCollectionListing {
+  collectionId String @map("collection_id")
+  listingId    String @map("listing_id")
+  order        Int    @default(0)
+
+  collection FeaturedCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  listing    Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([collectionId, listingId])
+  @@map("featured_collection_listings")
+}
+
+// =====================
+// New tables for v1
+// =====================
+
+model EditRequest {
+  id              String            @id @default(uuid())
+  listingId       String            @map("listing_id")
+  requesterWallet String            @map("requester_wallet") @db.VarChar(100)
+  proposedChanges Json              @map("proposed_changes")
+  status          EditRequestStatus @default(pending)
+  adminNotes      String?           @map("admin_notes")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  reviewedAt      DateTime?         @map("reviewed_at")
+
+  listing Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+  @@index([status])
+  @@map("edit_requests")
+}
+
+model UserProfile {
+  walletAddress String   @id @map("wallet_address") @db.VarChar(100)
+  displayName   String?  @map("display_name") @db.VarChar(100)
+  avatarUrl     String?  @map("avatar_url")
+  isNftHolder   Boolean  @default(false) @map("is_nft_holder")
+  lastNftCheck  DateTime? @map("last_nft_check")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@map("user_profiles")
+}
+
+model AdminSession {
+  id        String   @id @default(uuid())
+  codeHash  String   @map("code_hash") @db.VarChar(64)
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("admin_sessions")
+}

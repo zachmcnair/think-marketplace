@@ -2,7 +2,7 @@
  * Seed Data for Think Marketplace
  * ================================
  * Demo data for development and POC.
- * In production, this will come from Supabase.
+ * In production, this comes from the Railway PostgreSQL database via Prisma.
  */
 
 import { Listing, Builder, Category } from "@/types";

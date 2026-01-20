@@ -6,7 +6,13 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ListingCard } from "@/components/listing-card";
-import { getBuilderBySlug, getListingsByBuilder } from "@/lib/data/seed";
+import { fetchBuilder } from "@/lib/api";
+import type { Builder, Listing } from "@/types";
+import { getBaseUrl } from "@/lib/utils";
+
+export const dynamic = 'force-dynamic'
+
+const BASE_URL = getBaseUrl()
 
 export async function generateMetadata({
   params,
@@ -14,18 +20,44 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const builder = getBuilderBySlug(slug);
 
-  if (!builder) {
+  try {
+    const builder = await fetchBuilder(slug);
+    const description = builder.bio || `View AI agents, tools, and apps from ${builder.name} on Think Marketplace`;
+
     return {
-      title: "Not Found",
+      title: `${builder.name} - Builder Profile`,
+      description,
+      openGraph: {
+        title: `${builder.name} | Think Marketplace Builder`,
+        description,
+        url: `${BASE_URL}/builder/${slug}`,
+        type: 'profile',
+        images: builder.avatar_url ? [
+          {
+            url: builder.avatar_url,
+            width: 400,
+            height: 400,
+            alt: builder.name,
+          }
+        ] : undefined,
+      },
+      twitter: {
+        card: 'summary',
+        title: `${builder.name} | Think Marketplace`,
+        description,
+        images: builder.avatar_url ? [builder.avatar_url] : undefined,
+      },
+      alternates: {
+        canonical: `${BASE_URL}/builder/${slug}`,
+      },
+    };
+  } catch {
+    return {
+      title: "Builder Not Found",
+      description: "The requested builder profile could not be found.",
     };
   }
-
-  return {
-    title: builder.name,
-    description: builder.bio || `View listings from ${builder.name} on Think Marketplace`,
-  };
 }
 
 export default async function BuilderPage({
@@ -34,16 +66,40 @@ export default async function BuilderPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const builder = getBuilderBySlug(slug);
 
-  if (!builder) {
+  let builder: Builder & { listings?: Listing[] };
+
+  try {
+    builder = await fetchBuilder(slug) as Builder & { listings?: Listing[] };
+  } catch {
     notFound();
   }
 
-  const listings = getListingsByBuilder(builder.id);
+  const listings = (builder.listings || []) as unknown as Listing[];
+
+  // JSON-LD structured data for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name: builder.name,
+    description: builder.bio,
+    url: `${BASE_URL}/builder/${builder.slug}`,
+    image: builder.avatar_url,
+    sameAs: [
+      builder.website,
+      builder.twitter ? `https://twitter.com/${builder.twitter}` : null,
+      builder.github ? `https://github.com/${builder.github}` : null,
+    ].filter(Boolean),
+  };
 
   return (
     <Layout>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Back link */}
         <div className="mb-6">

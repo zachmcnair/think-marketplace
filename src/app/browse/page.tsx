@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, Suspense } from "react";
+import { useState, useMemo, Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, X, Bot, Wrench, AppWindow, SlidersHorizontal } from "lucide-react";
 
@@ -23,9 +23,10 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { ListingCard } from "@/components/listing-card";
-import { getAllListingsWithBuilders, categories } from "@/lib/data/seed";
+import { ListingCardSkeleton } from "@/components/listing-card-skeleton";
+import { BackgroundGrid } from "@/components/ui/background-grid";
 import { cn } from "@/lib/utils";
-import type { ListingType, ListingStatus } from "@/types";
+import type { Listing, ListingType, ListingStatus, Category } from "@/types";
 
 const typeFilters: { value: ListingType | "all"; label: string; icon: React.ElementType }[] = [
   { value: "all", label: "All Types", icon: SlidersHorizontal },
@@ -50,7 +51,7 @@ const sortOptions = [
 
 function BrowseContent() {
   const searchParams = useSearchParams();
-  
+
   // Initialize from URL params
   const initialType = (searchParams.get("type") as ListingType) || "all";
   const initialStatus = (searchParams.get("status") as ListingStatus) || "all";
@@ -62,10 +63,33 @@ function BrowseContent() {
   const [selectedStatus, setSelectedStatus] = useState<ListingStatus | "all">(initialStatus);
   const [selectedCategory, setSelectedCategory] = useState(initialCategory);
   const [sortBy, setSortBy] = useState("newest");
+  const [allListings, setAllListings] = useState<Listing[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const allListings = getAllListingsWithBuilders().filter(
-    (l) => l.review_state === "approved"
-  );
+  // Fetch data from API
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const [listingsRes, categoriesRes] = await Promise.all([
+          fetch('/api/listings?limit=100'),
+          fetch('/api/categories'),
+        ]);
+
+        const listingsData = await listingsRes.json();
+        const categoriesData = await categoriesRes.json();
+
+        setAllListings(listingsData.listings || []);
+        setCategories(categoriesData.categories || []);
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchData();
+  }, []);
 
   // Filter and sort listings
   const filteredListings = useMemo(() => {
@@ -95,11 +119,7 @@ function BrowseContent() {
     // Category filter
     if (selectedCategory) {
       result = result.filter((l) =>
-        l.categories.some(
-          (c) =>
-            c === selectedCategory ||
-            categories.find((cat) => cat.slug === selectedCategory)?.id === c
-        )
+        l.categories.some((c) => c === selectedCategory)
       );
     }
 
@@ -142,39 +162,49 @@ function BrowseContent() {
     selectedStatus !== "all" ||
     selectedCategory;
 
+  if (loading) {
+    return (
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {[...Array(6)].map((_, i) => (
+          <ListingCardSkeleton key={i} />
+        ))}
+      </div>
+    );
+  }
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <>
       {/* Page header */}
-      <div className="mb-8">
-        <h1 className="font-body text-3xl font-semibold text-foreground mb-2">
-          Browse Directory
+      <div className="mb-10">
+        <h1 className="font-heading text-4xl font-normal text-foreground mb-3">
+          Explore the Directory
         </h1>
-        <p className="text-muted-foreground">
-          Explore apps, tools, and agents built on Think
+        <p className="text-muted-foreground text-lg">
+          Discover the agents, tools, and apps shaping the user-owned AI ecosystem.
         </p>
       </div>
 
       {/* Search and filters */}
-      <div className="mb-8 space-y-4">
+      <div className="mb-10 space-y-4">
         {/* Search bar */}
-        <div className="relative">
+        <div className="relative group">
           <Search
-            className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+            className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors"
             aria-hidden="true"
           />
           <Input
             type="search"
-            placeholder="Search listings..."
+            placeholder="Search by name, description, or tags..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10"
+            className="pl-12 pr-12 h-14 text-base rounded-2xl border-border/50 bg-card/50 backdrop-blur-sm focus:ring-primary/20 transition-all shadow-sm"
             aria-label="Search listings"
           />
           {searchQuery && (
             <Button
               variant="ghost"
               size="icon"
-              className="absolute right-1 top-1/2 h-7 w-7 -translate-y-1/2"
+              className="absolute right-2 top-1/2 h-8 w-8 -translate-y-1/2 rounded-full hover:bg-muted"
               onClick={() => setSearchQuery("")}
               aria-label="Clear search"
             >
@@ -186,18 +216,18 @@ function BrowseContent() {
         {/* Desktop filters */}
         <div className="hidden lg:flex items-center gap-4">
           {/* Type filter chips */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 bg-muted/30 p-1 rounded-2xl border border-border/50 backdrop-blur-sm">
             {typeFilters.map((filter) => {
               const Icon = filter.icon;
               return (
                 <Button
                   key={filter.value}
-                  variant={selectedType === filter.value ? "default" : "outline"}
+                  variant={selectedType === filter.value ? "secondary" : "ghost"}
                   size="sm"
                   onClick={() => setSelectedType(filter.value)}
                   className={cn(
-                    "gap-1.5",
-                    selectedType === filter.value && "shadow-sm"
+                    "gap-1.5 rounded-xl h-9 px-4 transition-all",
+                    selectedType === filter.value ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden="true" />
@@ -207,16 +237,16 @@ function BrowseContent() {
             })}
           </div>
 
-          <div className="h-6 w-px bg-border" aria-hidden="true" />
+          <div className="h-8 w-px bg-border/50 mx-2" aria-hidden="true" />
 
           {/* Status filter */}
           <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as ListingStatus | "all")}>
-            <SelectTrigger className="w-[140px]" aria-label="Filter by status">
+            <SelectTrigger className="w-[140px] rounded-xl border-border/50 bg-card/50 h-11" aria-label="Filter by status">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               {statusFilters.map((filter) => (
-                <SelectItem key={filter.value} value={filter.value}>
+                <SelectItem key={filter.value} value={filter.value} className="rounded-lg">
                   {filter.label}
                 </SelectItem>
               ))}
@@ -225,27 +255,32 @@ function BrowseContent() {
 
           {/* Category filter */}
           <Select value={selectedCategory || "all"} onValueChange={(v) => setSelectedCategory(v === "all" ? "" : v)}>
-            <SelectTrigger className="w-[160px]" aria-label="Filter by category">
-              <SelectValue placeholder="Category" />
+            <SelectTrigger className="w-[180px] rounded-xl border-border/50 bg-card/50 h-11" aria-label="Filter by category">
+              <SelectValue placeholder="All Categories" />
             </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Categories</SelectItem>
+            <SelectContent className="rounded-xl">
+              <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
               {categories.map((cat) => (
-                <SelectItem key={cat.id} value={cat.slug}>
+                <SelectItem key={cat.id} value={cat.slug} className="rounded-lg">
                   {cat.name}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
+          <div className="flex-1" />
+
           {/* Sort */}
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[150px]" aria-label="Sort listings">
-              <SelectValue placeholder="Sort by" />
+            <SelectTrigger className="w-[160px] rounded-xl border-border/50 bg-card/50 h-11" aria-label="Sort listings">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">Sort:</span>
+                <SelectValue placeholder="Sort by" />
+              </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="rounded-lg">
                   {option.label}
                 </SelectItem>
               ))}
@@ -258,9 +293,9 @@ function BrowseContent() {
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="text-muted-foreground"
+              className="text-muted-foreground hover:text-foreground h-11 px-4 rounded-xl"
             >
-              Clear all
+              Clear
               <X className="ml-1.5 h-3.5 w-3.5" aria-hidden="true" />
             </Button>
           )}
@@ -270,40 +305,41 @@ function BrowseContent() {
         <div className="flex lg:hidden items-center gap-2">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="flex-1 rounded-xl h-12 border-border/50 bg-card/50 backdrop-blur-sm">
                 <SlidersHorizontal className="mr-2 h-4 w-4" aria-hidden="true" />
                 Filters
                 {hasActiveFilters && (
-                  <Badge variant="secondary" className="ml-2">
+                  <Badge variant="secondary" className="ml-2 bg-primary/20 text-primary border-none">
                     Active
                   </Badge>
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh]">
-              <SheetHeader>
-                <SheetTitle>Filters</SheetTitle>
+            <SheetContent side="bottom" className="h-[80vh] rounded-t-[2rem] border-t-primary/20">
+              <SheetHeader className="mb-6">
+                <SheetTitle className="font-heading text-2xl">Refine Search</SheetTitle>
               </SheetHeader>
-              <div className="mt-6 space-y-6">
+              <div className="space-y-8 overflow-y-auto pb-8">
                 {/* Type */}
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">
-                    Type
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    Project Type
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {typeFilters.map((filter) => {
                       const Icon = filter.icon;
                       return (
                         <Button
                           key={filter.value}
-                          variant={
-                            selectedType === filter.value ? "default" : "outline"
-                          }
+                          variant={selectedType === filter.value ? "secondary" : "outline"}
                           size="sm"
                           onClick={() => setSelectedType(filter.value)}
-                          className="gap-1.5"
+                          className={cn(
+                            "gap-2 rounded-xl h-12 justify-start px-4",
+                            selectedType === filter.value && "bg-primary/10 text-primary border-primary/20"
+                          )}
                         >
-                          <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+                          <Icon className="h-4 w-4" aria-hidden="true" />
                           {filter.label}
                         </Button>
                       );
@@ -312,19 +348,21 @@ function BrowseContent() {
                 </div>
 
                 {/* Status */}
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">
-                    Status
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    Development Status
                   </p>
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     {statusFilters.map((filter) => (
                       <Button
                         key={filter.value}
-                        variant={
-                          selectedStatus === filter.value ? "default" : "outline"
-                        }
+                        variant={selectedStatus === filter.value ? "secondary" : "outline"}
                         size="sm"
                         onClick={() => setSelectedStatus(filter.value)}
+                        className={cn(
+                          "rounded-xl h-12",
+                          selectedStatus === filter.value && "bg-primary/10 text-primary border-primary/20"
+                        )}
                       >
                         {filter.label}
                       </Button>
@@ -333,38 +371,19 @@ function BrowseContent() {
                 </div>
 
                 {/* Category */}
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">
+                <div className="space-y-3">
+                  <p className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
                     Category
                   </p>
                   <Select value={selectedCategory || "all"} onValueChange={(v) => setSelectedCategory(v === "all" ? "" : v)}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl border-border/50 bg-muted/30">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
+                    <SelectContent className="rounded-xl">
+                      <SelectItem value="all" className="rounded-lg">All Categories</SelectItem>
                       {categories.map((cat) => (
-                        <SelectItem key={cat.id} value={cat.slug}>
+                        <SelectItem key={cat.id} value={cat.slug} className="rounded-lg">
                           {cat.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Sort */}
-                <div>
-                  <p className="text-sm font-medium text-foreground mb-2">
-                    Sort by
-                  </p>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sort by" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {sortOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -374,24 +393,28 @@ function BrowseContent() {
                 {/* Clear */}
                 {hasActiveFilters && (
                   <Button
-                    variant="outline"
+                    variant="ghost"
                     onClick={clearFilters}
-                    className="w-full"
+                    className="w-full h-12 rounded-xl text-muted-foreground"
                   >
                     Clear all filters
                   </Button>
                 )}
+                
+                <Button className="w-full h-14 rounded-xl text-lg font-medium shadow-lg shadow-primary/20" onClick={() => {}}>
+                  Show {filteredListings.length} Results
+                </Button>
               </div>
             </SheetContent>
           </Sheet>
 
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px]" aria-label="Sort listings">
+            <SelectTrigger className="w-[120px] rounded-xl h-12 border-border/50 bg-card/50 backdrop-blur-sm" aria-label="Sort listings">
               <SelectValue placeholder="Sort" />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent className="rounded-xl">
               {sortOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
+                <SelectItem key={option.value} value={option.value} className="rounded-lg">
                   {option.label}
                 </SelectItem>
               ))}
@@ -401,10 +424,9 @@ function BrowseContent() {
       </div>
 
       {/* Results count */}
-      <div className="mb-6">
-        <p className="text-sm text-muted-foreground">
-          {filteredListings.length} listing
-          {filteredListings.length !== 1 ? "s" : ""} found
+      <div className="mb-6 flex items-center justify-between">
+        <p className="text-sm font-medium text-muted-foreground">
+          Showing <span className="text-foreground">{filteredListings.length}</span> project{filteredListings.length !== 1 ? "s" : ""}
         </p>
       </div>
 
@@ -416,41 +438,34 @@ function BrowseContent() {
           ))}
         </div>
       ) : (
-        <div className="text-center py-16">
-          <div className="mx-auto w-16 h-16 mb-4 flex items-center justify-center rounded-full bg-muted">
-            <Search className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
+        <div className="text-center py-24 bg-card/30 rounded-3xl border border-dashed border-border">
+          <div className="mx-auto w-20 h-20 mb-6 flex items-center justify-center rounded-2xl bg-muted/50">
+            <Search className="h-10 w-10 text-muted-foreground/50" aria-hidden="true" />
           </div>
-          <h3 className="font-body text-lg font-semibold text-foreground mb-2">
-            No listings found
+          <h3 className="font-heading text-2xl font-medium text-foreground mb-2">
+            No projects matched your criteria
           </h3>
-          <p className="text-muted-foreground max-w-sm mx-auto mb-6">
-            Try adjusting your search or filters to find what you&apos;re
+          <p className="text-muted-foreground max-w-sm mx-auto mb-8">
+            Try adjusting your search query or removing filters to find what you&apos;re
             looking for.
           </p>
           {hasActiveFilters && (
-            <Button variant="outline" onClick={clearFilters}>
+            <Button variant="outline" onClick={clearFilters} className="rounded-xl px-8 h-12">
               Clear all filters
             </Button>
           )}
         </div>
       )}
-    </div>
+    </>
   );
 }
 
 function BrowseLoading() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-8">
-        <div className="h-9 w-48 bg-muted animate-pulse rounded" />
-        <div className="h-5 w-64 bg-muted animate-pulse rounded mt-2" />
-      </div>
-      <div className="h-10 w-full bg-muted animate-pulse rounded mb-8" />
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-48 bg-muted animate-pulse rounded-xl" />
-        ))}
-      </div>
+    <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      {[...Array(6)].map((_, i) => (
+        <ListingCardSkeleton key={i} />
+      ))}
     </div>
   );
 }
@@ -458,9 +473,19 @@ function BrowseLoading() {
 export default function BrowsePage() {
   return (
     <Layout>
-      <Suspense fallback={<BrowseLoading />}>
-        <BrowseContent />
-      </Suspense>
+      <section className="relative min-h-screen">
+        {/* Decorative background */}
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <BackgroundGrid className="opacity-10 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_90%)]" />
+          <div className="absolute top-0 right-0 h-[500px] w-[500px] rounded-full bg-primary/5 blur-[120px] opacity-50" />
+        </div>
+        
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <Suspense fallback={<BrowseLoading />}>
+            <BrowseContent />
+          </Suspense>
+        </div>
+      </section>
     </Layout>
   );
 }

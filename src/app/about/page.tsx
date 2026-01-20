@@ -5,9 +5,26 @@ import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
+import { getBaseUrl } from "@/lib/utils";
+
+const BASE_URL = getBaseUrl();
+
 export const metadata = {
-  title: "About",
-  description: "Learn about Think Marketplace and the Think Agent Standard",
+  title: "About Think Marketplace",
+  description: "Learn about Think Marketplace, the curated directory of AI agents, tools, and apps built on the Think Agent Standard. Discover user-owned AI.",
+  openGraph: {
+    title: "About | Think Marketplace",
+    description: "Learn about Think Marketplace and the Think Agent Standard for user-owned AI.",
+    url: `${BASE_URL}/about`,
+    type: "website",
+  },
+  twitter: {
+    title: "About | Think Marketplace",
+    description: "Learn about Think Marketplace and the Think Agent Standard.",
+  },
+  alternates: {
+    canonical: `${BASE_URL}/about`,
+  },
 };
 
 export default function AboutPage() {

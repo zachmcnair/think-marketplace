@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find . -name .env* -o -name vercel.json -o -name .eslintrc*)",
+      "Bash(railway status:*)",
+      "Bash(railway variables:*)",
+      "Bash(railway service:*)",
+      "Bash(railway run:*)",
+      "Bash(npm install:*)",
+      "Bash(npx prisma db push:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run db:seed:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npx tsc:*)",
+      "Bash(timeout 15 npm run dev:*)",
+      "Bash(pkill:*)",
+      "Bash(jq:*)",
+      "Bash(openssl rand:*)",
+      "Bash(npm run build:*)",
+      "Bash(pnpm install:*)",
+      "Bash(find:*)",
+      "Bash(ls:*)",
+      "Bash(wc:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}

@@ -2,9 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 import { Github } from "lucide-react";
-import { useEffect, useState } from "react";
 
 // X (formerly Twitter) icon
 function XIcon({ className }: { className?: string }) {
@@ -40,21 +38,6 @@ const footerLinks = {
 };
 
 export function Footer() {
-  const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const logoSrc = mounted && resolvedTheme === "dark" 
-    ? "/think-brainfist-darkmode-mode.svg" 
-    : "/think-brainfist-light-mode.svg";
-
-  const wordmarkSrc = mounted && resolvedTheme === "dark"
-    ? "/think-marketplace-wordmark-dark-mode-white.svg"
-    : "/think-marketplace-wordmark-light-mode.svg";
-
   return (
     <footer className="border-t border-border bg-card" aria-labelledby="footer-heading">
       <h2 id="footer-heading" className="sr-only">
@@ -69,18 +52,32 @@ export function Footer() {
               className="flex items-center gap-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md w-fit"
             >
               <Image
-                src={logoSrc}
+                src="/think-brainfist-light-mode.svg"
                 alt=""
                 width={32}
                 height={36}
-                className="h-9 w-auto"
+                className="h-9 w-auto dark:hidden"
               />
               <Image
-                src={wordmarkSrc}
+                src="/think-brainfist-darkmode-mode.svg"
+                alt=""
+                width={32}
+                height={36}
+                className="h-9 w-auto hidden dark:block"
+              />
+              <Image
+                src="/think-marketplace-wordmark-light-mode.svg"
                 alt="Think Marketplace"
                 width={120}
                 height={16}
-                className="h-4 w-auto ml-1"
+                className="h-4 w-auto ml-1 dark:hidden"
+              />
+              <Image
+                src="/think-marketplace-wordmark-dark-mode-white.svg"
+                alt="Think Marketplace"
+                width={120}
+                height={16}
+                className="h-4 w-auto ml-1 hidden dark:block"
               />
             </Link>
             <p className="mt-4 text-sm text-muted-foreground max-w-xs">
