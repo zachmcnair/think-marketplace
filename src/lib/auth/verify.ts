@@ -72,7 +72,7 @@ export async function verifyAuthToken(authHeader: string | null): Promise<Verifi
 
     const walletAddresses = (user.linked_accounts || [])
       .filter((account) => account.type === 'wallet' || account.type === 'smart_wallet')
-      .filter((account) => account.chain_type === 'ethereum')
+      .filter((account) => ('chain_type' in account ? account.chain_type === 'ethereum' : true))
       .map((account) => normalizeWalletAddress(account.address))
 
     return {

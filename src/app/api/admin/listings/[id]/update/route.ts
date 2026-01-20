@@ -61,7 +61,7 @@ export async function POST(
       status: status ?? listing.status,
       visibility: visibility ?? listing.visibility,
       tags: Array.isArray(tags) ? tags : listing.tags,
-      links: links ?? listing.links,
+      links: (links ?? listing.links) as Record<string, string>,
       ...(Array.isArray(categories)
         ? {
             categories: {

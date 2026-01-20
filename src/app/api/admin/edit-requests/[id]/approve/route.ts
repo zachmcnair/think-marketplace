@@ -60,7 +60,7 @@ export async function POST(
           longDescription: proposedChanges.longDescription ?? null,
           status: proposedChanges.status ?? editRequest.listing.status,
           tags: proposedChanges.tags ?? editRequest.listing.tags,
-          links: proposedChanges.links ?? editRequest.listing.links,
+          links: proposedChanges.links ?? (editRequest.listing.links as Record<string, string>),
           ...(proposedChanges.categories
             ? {
                 categories: {
